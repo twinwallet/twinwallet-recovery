@@ -1,1 +1,13 @@
-/* Empty. Add your own CSS if you like */
+/** Styling for the secret field **/
+label.item.has-errors {  
+  border-bottom: 2px solid red;
+}
+
+/** Styling for the error text and container **/
+.error-container {
+  margin: 5px 0
+}
+.form-error {
+  padding: 2px 0 2px 16px;
+  color: red;
+}
