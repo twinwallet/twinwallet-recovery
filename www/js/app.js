@@ -189,12 +189,12 @@ angular.module('starter', ['ionic', 'ngMessages', '720kb.tooltips', 'bwcModule',
 								
 									if (balance.availableAmount > feeToSendMaxSat) {
 										if (balance.lockedAmount) { // Any pending transaction?
-											walletClient2.getTxProposals({}, function(err, proposals) {
+											walletClient2.getTxProposals({}, function(err, proposals) { 		console.debug(proposals)
 												if (err) {
 													deferredAmount.reject(err);
 												} else { // Let's abort them
 													
-													if (!proposals.length) throw("Internal error: lockedAmount > 0 with no pending txp");
+													if (!proposals.length) throw("Internal error: lockedAmount > 0 with no pending txp"); // Kind of ASSERT
 													
 													var deferred = [];
 													for (var i=0; i < proposals.length; i++) {
@@ -210,13 +210,30 @@ angular.module('starter', ['ionic', 'ngMessages', '720kb.tooltips', 'bwcModule',
 													});
 													
 													proposals.forEach(function(txp, i) {
-														walletClient2.rejectTxProposal(txp, "Resetting wallet", function(err, obj) {
+														var callback = function (err) {
 															if (err) {
 																deferred[i].reject(err);
 															} else {
 																deferred[i].resolve();
 															}
-														});
+														}
+														
+														if (txp.creatorId === walletClient1.credentials.copayerId) {
+															// walletClient1 did create the txp.
+															walletClient1.removeTxProposal(txp, callback);
+														} else if (txp.creatorId === walletClient2.credentials.copayerId) {
+															// walletClient2 did create the txp.
+															walletClient2.removeTxProposal(txp, callback);
+														} else {
+															// walletClient1 didn't create the txp, nor walletClient2. => Two Step Reject 
+															walletClient1.rejectTxProposal(txp, "Resetting wallet", function(err, rejectedTxp) {
+																if (err) {
+																	deferred[i].reject(err);
+																} else {
+																	walletClient2.rejectTxProposal(txp, "Resetting Wallet", callback);
+																}
+															});
+														}
 													});
 												}
 											});
