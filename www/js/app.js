@@ -169,7 +169,7 @@ angular.module('starter', ['ionic', 'ngMessages', '720kb.tooltips', 'bwcModule',
 			        $ionicPopup.confirm({
 			          title: 'Chiave recuperata',
 			          template: "Trasferire il portafoglio all'indirizzo " + dataForm.target.title + " ?"
-			        }).then(function(yes) {
+			        }).then(function(yes) { // Confirm transfer?
 
 			        	if (yes) {
 			        		// Ok, confirmed!
@@ -207,13 +207,13 @@ angular.module('starter', ['ionic', 'ngMessages', '720kb.tooltips', 'bwcModule',
 														deferredAmount.resolve(balance.availableAmount - feeToSendMaxSat);
 													}, function(err) {
 														deferredAmount.reject(err);
-													}); 											console.debug(proposals);
+													});
 													
 													proposals.forEach(function(txp, i) {
 														walletClient2.rejectTxProposal(txp, "Resetting wallet", function(err, obj) {
 															if (err) {
 																deferred[i].reject(err);
-															} else {						console.debug(obj);
+															} else {
 																deferred[i].resolve();
 															}
 														});
