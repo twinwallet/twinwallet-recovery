@@ -54,9 +54,9 @@
               <div ng-messages-include="error-list.html"></div>
             </div>
 
-            <label class="item item-input item-floating-label" tooltips tooltip-template="Es.: http://esempio.com" tooltip-side="bottom" ng-class="{ 'has-errors' : dataForm.target.$invalid && dataForm.$submitted}">
+            <label class="item item-input item-floating-label" tooltips tooltip-template="Immettere, senza spazi, una combinazione di lettere (maiuscole/minuscole) e numeri." tooltip-side="bottom" ng-class="{ 'has-errors' : dataForm.target.$invalid && dataForm.$submitted}">
               <span class="input-label">Indirizzo di destinazione</span>
-              <input type="text" name="target" placeholder="Indirizzo portafoglio di desinazione" ng-model="dataForm.target.title" target-address>
+              <input type="text" name="target" placeholder="Indirizzo portafoglio di desinazione" ng-model="dataForm.target.title" bc-address>
             </label>
             <div  class="error-container" ng-show="dataForm.target.$error && dataForm.$submitted" ng-messages="dataForm.target.$error">
               <div ng-messages-include="error-list.html"></div>
@@ -79,9 +79,9 @@
         <i class="ion-information-circled"></i> 
         Immettere una frase di dodici parole.
       </div>
-      <div class="form-error" ng-message="targetAddressValidator">
+      <div class="form-error" ng-message="addressValidator">
         <i class="ion-information-circled"></i> 
-        Immettere un indirizzo valido (p.es.: http://mywallet.my).
+        Immettere, senza spazi, una combinazione di lettere (maiuscole/minuscole) e numeri.
       </div>
     </script>   
 
