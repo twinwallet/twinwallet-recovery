@@ -7,7 +7,7 @@
 
     <link href="lib/ionic/css/ionic.css" rel="stylesheet">
     <link href="css/style.css" rel="stylesheet">
-	
+
 	<link rel="stylesheet" href="lib/angular-tooltips/dist/angular-tooltips.min.css" type="text/css" media="screen">
 
     <!-- IF using Sass (run gulp sass first), then uncomment below and remove the CSS includes above
@@ -22,11 +22,11 @@
 
     <!-- your app's js -->
 	<script src="lib/angular-messages/angular-messages.min.js" type="text/javascript" charset="utf-8"></script>
-	<script src="lib/angular-bitcore-wallet-client/angular-bitcore-wallet-client.min.js" type="text/javascript" charset="utf-8"></script>
+	<script src="lib/angular-bitcore-wallet-client.min.js" type="text/javascript" charset="utf-8"></script>
 	<script src="lib/angular-tooltips/dist/angular-tooltips.min.js" type="text/javascript" charset="utf-8"></script>
 	<script src="lib/cosignclient/cosignclient-angular.js" type="text/javascript" charset="utf-8"></script>
 	<script src="lib/nodebuffer.js" type="text/javascript" charset="utf-8"></script>
-	
+
     <script src="js/app.js"></script>
   </head>
   <body ng-app="starter" ng-controller="mainController">
@@ -70,20 +70,20 @@
       </ion-content>
     </ion-pane>
 
-    <script id="error-list.html" type="text/ng-template">  
+    <script id="error-list.html" type="text/ng-template">
       <div class="form-error" ng-message="required">
-        <i class="ion-information-circled"></i> 
+        <i class="ion-information-circled"></i>
         Questo campo è richiesto.
       </div>
       <div class="form-error" ng-message="twelveWordsValidator">
-        <i class="ion-information-circled"></i> 
+        <i class="ion-information-circled"></i>
         Immettere una frase di dodici parole.
       </div>
       <div class="form-error" ng-message="addressValidator">
-        <i class="ion-information-circled"></i> 
+        <i class="ion-information-circled"></i>
         Immettere, senza spazi, una combinazione di lettere (maiuscole/minuscole) e numeri.
       </div>
-    </script>   
+    </script>
 
   </body>
 </html>
