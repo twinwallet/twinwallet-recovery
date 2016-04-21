@@ -1,12 +1,14 @@
 var gulp = require('gulp');
 var gutil = require('gulp-util');
 var bower = require('bower');
-var browserify = require('gulp-browserify');
+var browserify = require('browserify');
+var buffer = require('vinyl-buffer');
 var concat = require('gulp-concat');
 var sass = require('gulp-sass');
 var minifyCss = require('gulp-minify-css');
 var rename = require('gulp-rename');
 var sh = require('shelljs');
+var source = require('vinyl-source-stream');
 var uglify = require('gulp-uglify');
 
 var paths = {
@@ -29,9 +31,15 @@ gulp.task('sass', function(done) {
 });
 
 gulp.task('libs', function (done) {
-  gulp.src('./node_modules/angular-bitcore-wallet-client/index.js')
-    .pipe(rename("angular-bitcore-wallet-client.js"))
-    .pipe(browserify({}))
+  // set up the browserify instance on a task basis
+  var b = browserify({
+    entries: './node_modules/angular-bitcore-wallet-client/index.js',
+    debug: true
+  });
+
+  return b.bundle()
+    .pipe(source("angular-bitcore-wallet-client.js"))
+    .pipe(buffer())
     .pipe(gulp.dest('./www/lib/'))
     .pipe(uglify())
     .pipe(rename({ extname: '.min.js' }))
