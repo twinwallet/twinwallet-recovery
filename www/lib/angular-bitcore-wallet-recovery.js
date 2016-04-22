@@ -5,24 +5,197 @@ var bwrModule = angular.module('bwrModule', ['bwcModule', 'cscModule'])
 
 bwrModule.constant("CONFIG", {
 	BWS_URL : 'http://twtest.undo.it:3232/bws/api', //BitWalletService URL
+//	BWS_URL : 'https://bws.bitpay.com/bws/api', //BitWalletService URL
 	NETWORK : 'testnet'
 });
 
 bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', function ($q, bwcService, cscService, CONFIG) {
 
 	bwcService.setBaseUrl(CONFIG.BWS_URL);
-	
-	this.move = function (from, to) {
-		var retVal = $q.defer();
+
+	var walletClient1 = bwcService.getClient(),
+		walletClient2 = bwcService.getClient();
 		
-		setTimeout(function(){retVal.reject(5000);}, 2000);
+	var feePerKB = 0;
+	
+	/**
+	 * move()
+	 *
+	 * @param from, to String |
+	 * @return $q.deferred.promise |
+	 */
+	this.move = function (fromAddress, toAddress) {
+		
+		var deferredPending = $q.defer(),
+			deferredFee = $q.defer(),
+			deferredAmount = $q.defer(),
+			deferredTxp = $q.defer(),
+			deferredSigned1 = $q.defer(),
+			deferredSigned2 = $q.defer();
+			deferredBroadcast = $q.defer(),
+			retVal = $q.defer();
+			
+		deferredPending.promise.then(function() { 
+			// Now, with no pending transaction, let's compute the feePerKb
+			walletClient1.getFeeLevels(CONFIG.NETWORK, function (err, levels) {
+				if (err) {
+					deferredFee.reject(err);
+				} else {
+					deferredFee.resolve(levels.filter(function(obj) {
+						return obj.level === "normal";
+					})[0].feePerKB);
+				}
+			});
+		});
+		
+		deferredFee.promise.then(function(feePerKB) {
+			// Now we do have the fee rate. We can compute the total fees
+			walletClient2.getBalance({}, function(err, balance) {
+				if (err) {
+					deferredAmount.reject(err);
+				} else {
+					var feeToSendMaxSat = parseInt(((balance.totalBytesToSendMax * feePerKB) / 1000.).toFixed(0));
+				
+					if (balance.availableAmount > feeToSendMaxSat) {
+						deferredAmount.resolve(balance.availableAmount - feeToSendMaxSat);
+					} else {
+						deferredAmount.reject("Not enough satoshis");
+					}
+				}
+			});
+			
+			this.feePerKb = feePerKB;
+		});
+
+		deferredAmount.promise.then(function(availableMaxBalance) {
+			// We have our max available Balance. Let's move it
+			walletClient1.sendTxProposal({
+				toAddress: toAddress,
+				amount: 1000/*availableMaxBalance*/,
+				message: '',
+				feePerKb: this.feePerKb,
+				excludeUnconfirmedUtxos:  false
+			}, function(err, txp) {
+				if (err) {
+					deferredTxp.reject(err);
+				} else {
+					deferredTxp.resolve(txp)
+				}
+			});
+		});
+
+
+		deferredTxp.promise.then(function(txp) {
+			// Transaction Proposal. Let's sign it.
+			walletClient1.signTxProposal(txp, function(err, signedTxp) {
+				if (err) {
+					deferredSigned1.reject(err);
+				} else {
+					deferredSigned1.resolve(signedTxp);
+				}
+			});
+		});
+
+		deferredSigned1.promise.then(function(signedTxp) {
+			// The transaction proposal is signed once.
+			walletClient2.signTxProposal(signedTxp, function(err, signedTxp) {
+				if (err) {
+					deferredSigned2.reject(err);
+				} else {
+					deferredSigned2.resolve(signedTxp);
+				}
+			});
+		});
+
+		deferredSigned2.promise.then(function(signedTxp) {
+			// The transaction proposal is now signed twice. Broadcast!
+			walletClient1.broadcastTxProposal(signedTxp, function (err, btx, memo) {
+				if (err) {
+					deferredBroadcast.reject(err);
+				} else {
+					deferredBroadcast.resolve([btx, memo]);
+				}
+			});
+		});
+
+		deferredBroadcast.promise.then(function(result) {
+			retVal.resolve(result['btx'].amount);
+		});
+
+		// Error handler
+		$q.all([deferredPending.promise,
+				deferredFee.promise,
+				deferredAmount.promise,
+				deferredTxp.promise,
+				deferredSigned1.promise,
+				deferredSigned2.promise,
+				deferredBroadcast.promise
+		]).catch(function(err) {
+			retVal.reject(err);
+		});
+			
+		// Let's trigger the whole promise chain
+		walletClient1.getTxProposals({}, function(err, proposals) {
+			if (err) {
+				deferredPending.reject(err);
+			} else { 
+				// Any pending transactions?
+				if (!proposals.length) { // No. Let's go on.
+					deferredPending.resolve();
+				} else { // Yes. Let's abort them
+					var deferred = [];
+					for (var i=0; i < proposals.length; i++) {
+						deferred.push($q.defer());
+					}
+				
+					$q.all(deferred.map(function(d) {
+						return d.promise;
+					})).then(function(result) {
+						deferredPending.resolve();
+					}, function(err) {
+						deferredPending.reject(err);
+					});
+				
+					proposals.forEach(function(txp, i) {
+						var callback = function (err) {
+							if (err) {
+								deferred[i].reject(err);
+							} else {
+								deferred[i].resolve();
+							}
+						}
+					
+						if (txp.creatorId === walletClient1.credentials.copayerId) {
+							// walletClient1 did create the txp.
+							walletClient1.removeTxProposal(txp, callback);
+						} else if (txp.creatorId === walletClient2.credentials.copayerId) {
+							// walletClient2 did create the txp.
+							walletClient2.removeTxProposal(txp, callback);
+						} else {
+							// walletClient1 didn't create the txp, nor walletClient2. => Two Step Reject 
+							walletClient1.rejectTxProposal(txp, "Resetting wallet", function(err, rejectedTxp) {
+								if (err) {
+									deferred[i].reject(err);
+								} else {
+									walletClient2.rejectTxProposal(txp, "Resetting Wallet", callback);
+								}
+							});
+						}
+					});
+				}
+			}
+		});
 		
 		return retVal.promise;
 	};
 
+	/**
+	 * getKey()
+	 *
+	 * @param words1, words2 String |
+	 * @return $q.deferred.promise |
+	 */
 	this.getKey = function (words1, words2) {
-		var walletClient1 = bwcService.getClient(),
-			walletClient2 = bwcService.getClient();
 	
 		var deferred1 = $q.defer(),
 			deferred2 = $q.defer(),
@@ -100,13 +273,3 @@ bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', fun
 		return retVal.promise;
 	};
 }]);
-
-
-
-
-	<script src="lib/angular-messages/angular-messages.min.js" type="text/javascript" charset="utf-8"></script>
-	<script src="lib/angular-bitcore-wallet-client/angular-bitcore-wallet-client.min.js" type="text/javascript" charset="utf-8"></script>
-	<script src="lib/angular-tooltips/dist/angular-tooltips.min.js" type="text/javascript" charset="utf-8"></script>
-	<script src="lib/cosignclient/cosignclient-angular.js" type="text/javascript" charset="utf-8"></script>
-	<script src="lib/nodebuffer.js" type="text/javascript" charset="utf-8"></script>
-	<script src="lib/angular-bitcore-wallet-recovery.js" type="text/javascript" charset="utf-8"></script>
