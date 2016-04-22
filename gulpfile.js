@@ -12,7 +12,8 @@ var source = require('vinyl-source-stream');
 var uglify = require('gulp-uglify');
 
 var paths = {
-  sass: ['./scss/**/*.scss']
+  sass: ['./scss/**/*.scss'],
+  libs: ['./libs/angular-bitcore-wallet-client.js']
 };
 
 gulp.task('default', ['sass', 'libs']);
@@ -32,13 +33,12 @@ gulp.task('sass', function(done) {
 
 gulp.task('libs', function (done) {
   // set up the browserify instance on a task basis
-  var b = browserify({
-    entries: './node_modules/angular-bitcore-wallet-client/index.js',
-    debug: true
-  });
-
-  return b.bundle()
-    .pipe(source("angular-bitcore-wallet-client.js"))
+  return browserify({
+      entries: paths.libs,
+      debug: true
+    })
+    .bundle()
+    .pipe(source("libs.js"))
     .pipe(buffer())
     .pipe(gulp.dest('./www/lib/'))
     .pipe(uglify())

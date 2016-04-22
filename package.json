@@ -3,7 +3,6 @@
   "version": "1.1.1",
   "description": "TwinWalletRebuild: An Ionic project",
   "dependencies": {
-    "angular-bitcore-wallet-client": "*",
     "bitcore-wallet-client": "~2.1.1",
     "gulp": "^3.5.6",
     "gulp-concat": "^2.2.0",
