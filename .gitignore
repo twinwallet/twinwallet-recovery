@@ -4,3 +4,7 @@
 node_modules/
 platforms/
 plugins/
+www/lib/angular*
+www/lib/ionic
+www/lib/libs.js
+www/lib/libs.min.js

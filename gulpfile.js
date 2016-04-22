@@ -1,17 +1,22 @@
 var gulp = require('gulp');
 var gutil = require('gulp-util');
 var bower = require('bower');
+var browserify = require('browserify');
+var buffer = require('vinyl-buffer');
 var concat = require('gulp-concat');
 var sass = require('gulp-sass');
 var minifyCss = require('gulp-minify-css');
 var rename = require('gulp-rename');
 var sh = require('shelljs');
+var source = require('vinyl-source-stream');
+var uglify = require('gulp-uglify');
 
 var paths = {
-  sass: ['./scss/**/*.scss']
+  sass: ['./scss/**/*.scss'],
+  libs: ['./libs/angular-bitcore-wallet-client.js']
 };
 
-gulp.task('default', ['sass']);
+gulp.task('default', ['sass', 'libs']);
 
 gulp.task('sass', function(done) {
   gulp.src('./scss/ionic.app.scss')
@@ -24,6 +29,21 @@ gulp.task('sass', function(done) {
     .pipe(rename({ extname: '.min.css' }))
     .pipe(gulp.dest('./www/css/'))
     .on('end', done);
+});
+
+gulp.task('libs', function (done) {
+  // set up the browserify instance on a task basis
+  return browserify({
+      entries: paths.libs,
+      debug: true
+    })
+    .bundle()
+    .pipe(source("libs.js"))
+    .pipe(buffer())
+    .pipe(gulp.dest('./www/lib/'))
+    .pipe(uglify())
+    .pipe(rename({ extname: '.min.js' }))
+    .pipe(gulp.dest('./www/lib/'));
 });
 
 gulp.task('watch', function() {

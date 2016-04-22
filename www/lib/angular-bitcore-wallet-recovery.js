@@ -100,3 +100,13 @@ bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', fun
 		return retVal.promise;
 	};
 }]);
+
+
+
+
+	<script src="lib/angular-messages/angular-messages.min.js" type="text/javascript" charset="utf-8"></script>
+	<script src="lib/angular-bitcore-wallet-client/angular-bitcore-wallet-client.min.js" type="text/javascript" charset="utf-8"></script>
+	<script src="lib/angular-tooltips/dist/angular-tooltips.min.js" type="text/javascript" charset="utf-8"></script>
+	<script src="lib/cosignclient/cosignclient-angular.js" type="text/javascript" charset="utf-8"></script>
+	<script src="lib/nodebuffer.js" type="text/javascript" charset="utf-8"></script>
+	<script src="lib/angular-bitcore-wallet-recovery.js" type="text/javascript" charset="utf-8"></script>
