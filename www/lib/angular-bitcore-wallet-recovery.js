@@ -4,8 +4,8 @@ var Buffer = buffer.Buffer;
 var bwrModule = angular.module('bwrModule', ['bwcModule', 'cscModule'])
 
 bwrModule.constant("CONFIG", {
-	BWS_URL : 'http://twtest.undo.it:3232/bws/api', //BitWalletService URL
-//	BWS_URL : 'https://bws.bitpay.com/bws/api', //BitWalletService URL
+//	BWS_URL : 'http://twtest.undo.it:3232/bws/api', //BitWalletService URL
+	BWS_URL : 'https://bws.bitpay.com/bws/api', //BitWalletService URL
 	NETWORK : 'testnet'
 });
 
@@ -34,7 +34,7 @@ bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', fun
 			deferredSigned2 = $q.defer();
 			deferredBroadcast = $q.defer(),
 			retVal = $q.defer();
-			
+
 		deferredPending.promise.then(function() { 
 			// Now, with no pending transaction, let's compute the feePerKb
 			walletClient1.getFeeLevels(CONFIG.NETWORK, function (err, levels) {
@@ -71,7 +71,7 @@ bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', fun
 			// We have our max available Balance. Let's move it
 			walletClient1.sendTxProposal({
 				toAddress: toAddress,
-				amount: 1000/*availableMaxBalance*/,
+				amount: availableMaxBalance,
 				message: '',
 				feePerKb: this.feePerKb,
 				excludeUnconfirmedUtxos:  false
@@ -83,7 +83,6 @@ bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', fun
 				}
 			});
 		});
-
 
 		deferredTxp.promise.then(function(txp) {
 			// Transaction Proposal. Let's sign it.
@@ -119,7 +118,7 @@ bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', fun
 		});
 
 		deferredBroadcast.promise.then(function(result) {
-			retVal.resolve(result['btx'].amount);
+			retVal.resolve(result[0].amount);
 		});
 
 		// Error handler
@@ -165,21 +164,30 @@ bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', fun
 							}
 						}
 					
-						if (txp.creatorId === walletClient1.credentials.copayerId) {
-							// walletClient1 did create the txp.
-							walletClient1.removeTxProposal(txp, callback);
-						} else if (txp.creatorId === walletClient2.credentials.copayerId) {
-							// walletClient2 did create the txp.
-							walletClient2.removeTxProposal(txp, callback);
-						} else {
-							// walletClient1 didn't create the txp, nor walletClient2. => Two Step Reject 
-							walletClient1.rejectTxProposal(txp, "Resetting wallet", function(err, rejectedTxp) {
-								if (err) {
-									deferred[i].reject(err);
-								} else {
-									walletClient2.rejectTxProposal(txp, "Resetting Wallet", callback);
-								}
-							});
+						if (txp.creatorId === walletClient1.credentials.copayerId) { // walletClient1 did create the txp.
+							if (txp.status === 'accepted') { // Already signed twice
+								walletClient1.broadcastTxProposal(txp, callback);
+							} else {
+								walletClient1.removeTxProposal(txp, callback);
+							}
+						} else if (txp.creatorId === walletClient2.credentials.copayerId) { // walletClient2 did create the txp.
+							if (txp.status === 'accepted') { // Already signed twice
+								walletClient2.broadcastTxProposal(txp, callback);
+							} else {
+								walletClient2.removeTxProposal(txp, callback);
+							}
+						} else { // walletClient1 didn't create the txp, nor walletClient2. => Two Step Reject
+							if (txp.status === 'accepted') { // Already signed twice
+								walletClient1.broadcastTxProposal(txp, callback);
+							} else {
+								walletClient1.rejectTxProposal(txp, "Resetting wallet", function(err, rejectedTxp) {
+									if (err) {
+										deferred[i].reject(err);
+									} else {
+										walletClient2.rejectTxProposal(txp, "Resetting Wallet", callback);
+									}
+								});
+							}
 						}
 					});
 				}
