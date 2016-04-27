@@ -52,7 +52,7 @@ angular.module('starter', ['ionic', 'ngMessages', '720kb.tooltips', 'bwcModule',
 					}).then(function(yes) { // Confirm transfer?
 						if (yes) {
 							$scope.show('<p>Moving satoshis...</p><ion-spinner></ion-spinner>'); // Shows the $ionicLoading spinner
-							var promise = bwrService.move(keyValue, dataForm.target.title);
+							var promise = bwrService.move(dataForm.target.title);
 						
 							promise.then(function(result) { // Resolve
 								alert("Transazione completata correttamente.\nTrasferiti " + result + " satoshi");
@@ -69,7 +69,7 @@ angular.module('starter', ['ionic', 'ngMessages', '720kb.tooltips', 'bwcModule',
 						}
 					});
 				} else {
-					alert("Chiave recuperata: " + keyValue);
+					alert("Portafoglio recuperato\nChiave Privata: " + keyValue);
 				}
 			}, function (reason) { // Reject
 				$ionicPopup.alert({
@@ -138,7 +138,9 @@ angular.module('starter', ['ionic', 'ngMessages', '720kb.tooltips', 'bwcModule',
 				// if it is, set our custom `addressValidator` to valid/true
 				// otherwise set it to non-valid/false
 				try {
-					bwcService.getBitcore().Address.fromString(ngModelValue);
+					if (ngModelValue !== '') {
+						bwcService.getBitcore().Address.fromString(ngModelValue);
+					}
 					ctrl.$setValidity('addressValidator', true);
 				} catch(e) {
 					ctrl.$setValidity('addressValidator', false);

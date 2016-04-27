@@ -6,17 +6,29 @@ var bwrModule = angular.module('bwrModule', ['bwcModule', 'cscModule'])
 bwrModule.constant("CONFIG", {
 //	BWS_URL : 'http://twtest.undo.it:3232/bws/api', //BitWalletService URL
 	BWS_URL : 'https://bws.bitpay.com/bws/api', //BitWalletService URL
-	NETWORK : 'testnet'
+	NETWORK : 'testnet',
+	NOTIFICATION_INTERVAL : {notificationIntervalSeconds: 0.2}
 });
 
 bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', function ($q, bwcService, cscService, CONFIG) {
 
 	bwcService.setBaseUrl(CONFIG.BWS_URL);
 
-	var walletClient1 = bwcService.getClient(),
-		walletClient2 = bwcService.getClient();
+	this.walletClient1 = bwcService.getClient();
+	this.walletClient2 = bwcService.getClient();
+	this.walletClient3 = bwcService.getClient();
 		
-	var feePerKB = 0;
+	this.feePerKB = 0;
+
+	function sort(buffs) {
+		if (buffs[0].length > buffs[1].length) return buffs;
+		if (buffs[0].length < buffs[1].length) return [buffs[1], buffs[0]];
+		for (var i = buffs[0].length - 1; i >= 0; i--) {
+			if (buffs[0][i] > buffs[1][i]) return buffs;
+			if (buffs[0][i] < buffs[1][i]) return [buffs[1], buffs[0]];
+		}
+		return buffs;
+	}
 	
 	/**
 	 * move()
@@ -24,7 +36,7 @@ bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', fun
 	 * @param from, to String |
 	 * @return $q.deferred.promise |
 	 */
-	this.move = function (fromAddress, toAddress) {
+	this.move = function (toAddress) {
 		
 		var deferredPending = $q.defer(),
 			deferredFee = $q.defer(),
@@ -33,11 +45,12 @@ bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', fun
 			deferredSigned1 = $q.defer(),
 			deferredSigned2 = $q.defer();
 			deferredBroadcast = $q.defer(),
-			retVal = $q.defer();
+			retVal = $q.defer(),
+			self = this;
 
-		deferredPending.promise.then(function() { 
+		deferredPending.promise.then(function() {
 			// Now, with no pending transaction, let's compute the feePerKb
-			walletClient1.getFeeLevels(CONFIG.NETWORK, function (err, levels) {
+			self.walletClient1.getFeeLevels(CONFIG.NETWORK, function (err, levels) {
 				if (err) {
 					deferredFee.reject(err);
 				} else {
@@ -50,7 +63,7 @@ bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', fun
 		
 		deferredFee.promise.then(function(feePerKB) {
 			// Now we do have the fee rate. We can compute the total fees
-			walletClient2.getBalance({}, function(err, balance) {
+			self.walletClient1.getBalance({}, function(err, balance) {
 				if (err) {
 					deferredAmount.reject(err);
 				} else {
@@ -69,7 +82,7 @@ bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', fun
 
 		deferredAmount.promise.then(function(availableMaxBalance) {
 			// We have our max available Balance. Let's move it
-			walletClient1.sendTxProposal({
+			self.walletClient1.sendTxProposal({
 				toAddress: toAddress,
 				amount: availableMaxBalance,
 				message: '',
@@ -86,7 +99,7 @@ bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', fun
 
 		deferredTxp.promise.then(function(txp) {
 			// Transaction Proposal. Let's sign it.
-			walletClient1.signTxProposal(txp, function(err, signedTxp) {
+			self.walletClient1.signTxProposal(txp, function(err, signedTxp) {
 				if (err) {
 					deferredSigned1.reject(err);
 				} else {
@@ -97,7 +110,7 @@ bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', fun
 
 		deferredSigned1.promise.then(function(signedTxp) {
 			// The transaction proposal is signed once.
-			walletClient2.signTxProposal(signedTxp, function(err, signedTxp) {
+			self.walletClient2.signTxProposal(signedTxp, function(err, signedTxp) {
 				if (err) {
 					deferredSigned2.reject(err);
 				} else {
@@ -108,7 +121,7 @@ bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', fun
 
 		deferredSigned2.promise.then(function(signedTxp) {
 			// The transaction proposal is now signed twice. Broadcast!
-			walletClient1.broadcastTxProposal(signedTxp, function (err, btx, memo) {
+			self.walletClient1.broadcastTxProposal(signedTxp, function (err, btx, memo) {
 				if (err) {
 					deferredBroadcast.reject(err);
 				} else {
@@ -134,7 +147,7 @@ bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', fun
 		});
 			
 		// Let's trigger the whole promise chain
-		walletClient1.getTxProposals({}, function(err, proposals) {
+		self.walletClient1.getTxProposals({}, function(err, proposals) {
 			if (err) {
 				deferredPending.reject(err);
 			} else { 
@@ -164,27 +177,27 @@ bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', fun
 							}
 						}
 					
-						if (txp.creatorId === walletClient1.credentials.copayerId) { // walletClient1 did create the txp.
+						if (txp.creatorId === self.walletClient1.credentials.copayerId) { // walletClient1 did create the txp.
 							if (txp.status === 'accepted') { // Already signed twice
-								walletClient1.broadcastTxProposal(txp, callback);
+								self.walletClient1.broadcastTxProposal(txp, callback);
 							} else {
-								walletClient1.removeTxProposal(txp, callback);
+								self.walletClient1.removeTxProposal(txp, callback);
 							}
-						} else if (txp.creatorId === walletClient2.credentials.copayerId) { // walletClient2 did create the txp.
+						} else if (txp.creatorId === self.walletClient2.credentials.copayerId) { // walletClient2 did create the txp.
 							if (txp.status === 'accepted') { // Already signed twice
-								walletClient2.broadcastTxProposal(txp, callback);
+								self.walletClient2.broadcastTxProposal(txp, callback);
 							} else {
-								walletClient2.removeTxProposal(txp, callback);
+								self.walletClient2.removeTxProposal(txp, callback);
 							}
 						} else { // walletClient1 didn't create the txp, nor walletClient2. => Two Step Reject
 							if (txp.status === 'accepted') { // Already signed twice
-								walletClient1.broadcastTxProposal(txp, callback);
+								self.walletClient1.broadcastTxProposal(txp, callback);
 							} else {
-								walletClient1.rejectTxProposal(txp, "Resetting wallet", function(err, rejectedTxp) {
+								self.walletClient1.rejectTxProposal(txp, "Resetting wallet", function(err, rejectedTxp) {
 									if (err) {
 										deferred[i].reject(err);
 									} else {
-										walletClient2.rejectTxProposal(txp, "Resetting Wallet", callback);
+										self.walletClient2.rejectTxProposal(txp, "Resetting Wallet", callback);
 									}
 								});
 							}
@@ -205,78 +218,104 @@ bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', fun
 	 */
 	this.getKey = function (words1, words2) {
 	
-		var deferred1 = $q.defer(),
-			deferred2 = $q.defer(),
-			retVal = $q.defer();
-	
-			$q.all([deferred1.promise, deferred2.promise]).then(function(result) { // Resolved
-				// Both promises were resolved -> Both wallets ready for joining
-				result.forEach(function(val) {
-					console.log(val);
+		var deferredWallet1 = $q.defer(),
+			deferredWallet2 = $q.defer(),
+			deferredWallet3 = $q.defer(),
+			deferredXPrivKey = $q.defer(),
+			retVal = $q.defer(),
+			self = this;
+			
+		deferredWallet1.promise.then(function(result) {
+			if (result === 'WALLET_EXISTS') { // Wallet already known to the network
+				self.walletClient2.importFromMnemonic(words2, {network : CONFIG.NETWORK}, function(err) {
+					if (err) {
+						// If the first wallet is know, so should be also the second wallet.
+						// An import failure here should be impossibile, so let's handle it as an "assertion" failure. 
+						deferredWallet2.reject(err)
+					} else { // Ok. Second wallet initialized.
+						deferredWallet2.resolve("WALLET_EXISTS")
+					}
 				});
-				
-				var CSClient = cscService.getCSClient();
-				var entropy1 = CSClient.extractServerEntropy(walletClient1.credentials);
-				var entropy2 = CSClient.extractServerEntropy(walletClient2.credentials);
-
-				// joinV2Update()
-				function sort(buffs) {
-					if (buffs[0].length > buffs[1].length) return buffs;
-					if (buffs[0].length < buffs[1].length) return [buffs[1], buffs[0]];
-					for (var i = buffs[0].length - 1; i >= 0; i--) {
-						if (buffs[0][i] > buffs[1][i]) return buffs;
-						if (buffs[0][i] < buffs[1][i]) return [buffs[1], buffs[0]];
+			} else { // Wallet unknow. We need to recreate it
+				self.walletClient1.seedFromMnemonic(words1, {network : CONFIG.NETWORK}); // Client-side initialization
+				self.walletClient1.createWallet('Twin Wallet', 'Device 1', 2, 3, {network: CONFIG.NETWORK}, function (err, secret) { // Server-side initialization
+					if (err) {
+						deferredWallet2.reject(err);
+					} else { // Wallet created
+						deferredWallet2.resolve(secret);
 					}
-					return buffs;
-				}
+				});
+			}
+		});
 
-				var e1 = new Buffer(entropy1, 'base64');
-				var e2 = new Buffer(entropy2, 'base64');
-				var seed = Buffer.concat(sort([e1, e2]));
-				if (seed.length != 64) { 
-					retVal.reject("Errore nella generazione dell'entropia (ERR_NOT512BIT_ENTROPY)")
+		deferredWallet2.promise.then(function(result) {
+			if (result === "WALLET_EXISTS") { // Wallet 2 initialized
+				deferredWallet3.resolve("WALLET_EXISTS")
+			} else { // Wallet doesn't exist, let's join the second client
+				var secret = result;
+				self.walletClient2.joinWallet(secret, 'Device2', {}, function (err, wallet) {
+					if (err) { // Again. At this stage, an error is highly unpropable
+						deferredWallet3.reject(err);
+					} else {
+						deferredWallet3.resolve(secret)
+					}
+				});
+			}
+		});
+
+		deferredWallet3.promise.then(function(result) {
+			var CSClient = cscService.getCSClient();
+			var entropy1 = CSClient.extractServerEntropy(self.walletClient1.credentials);
+			var entropy2 = CSClient.extractServerEntropy(self.walletClient2.credentials);
+
+			var e1 = new Buffer(entropy1, 'base64');
+			var e2 = new Buffer(entropy2, 'base64');
+			var seed = Buffer.concat(sort([e1, e2]));
+
+			if (seed.length != 64) {
+				deferredXPrivKey.reject("Errore nella generazione dell'entropia (ERR_NOT512BIT_ENTROPY)")
+			} else {
+				var xpriv = bwcService.getBitcore().HDPrivateKey.fromSeed(seed, CONFIG.NETWORK).toString();
+				if (result === "WALLET_EXISTS") {
+					deferredXPrivKey.resolve(xpriv);
+				} else { // Wallet doesn't exist. Let's join
+					var secret = result;
+					self.walletClient3.seedFromExtendedPrivateKey(xpriv);
+					self.walletClient3.joinWallet(secret, 'Device3', {}, function (err, wallet) {
+						if (err) { // Again. At this stage, an error is highly unpropable
+							deferredXPrivKey.reject(err);
+						} else {
+							deferredXPrivKey.resolve(xpriv)
+						}
+					});
+				}
+			}
+		});
+
+		deferredXPrivKey.promise.then(function (result) {
+			retVal.resolve(result);
+		});
+
+		// Error handler
+		$q.all([deferredWallet1.promise,
+				deferredWallet2.promise,
+				deferredWallet3.promise,
+				deferredXPrivKey.promise
+		]).catch(function(err) {
+			retVal.reject(err);
+		});
+		
+		self.walletClient1.importFromMnemonic(words1, {network : CONFIG.NETWORK}, function(err) {
+			if(err) {
+				if (err.code === "WALLET_DOES_NOT_EXIST" || err.message === "Copayer not found") {
+					deferredWallet1.resolve("WALLET_DOES_NOT_EXIST");
 				} else {
-					retVal.resolve(bwcService.getBitcore().HDPrivateKey.fromSeed(seed, CONFIG.NETWORK).toString());
+					deferredWallet1.reject(err);
 				}
-			}, function(reason) { // Reject
-				retVal.reject(reason);
-			});
-
-			walletClient1.importFromMnemonic(words1, {network : CONFIG.NETWORK}, function(err) {
-				if(err) {
-					if (err.code === "WALLET_DOES_NOT_EXIST") {
-						// Recreate Wallet & Resolve
-						try {
-							walletClient1.seedFromMnemonic(words1, {network : CONFIG.NETWORK});
-							deferred1.resolve("wallet1 recreated");
-						} catch (e) { 
-							deferred1.reject(e);
-						}
-					} else {
-						deferred1.reject(err);
-					}
-				} else { // Wallet exists
-					deferred1.resolve("wallet1 exists");
-				}
-			});
-
-			walletClient2.importFromMnemonic(words2, {network : CONFIG.NETWORK}, function(err) {
-				if(err) {
-					if (err.code === "WALLET_DOES_NOT_EXIST") {
-						// Recreate Wallet & Resolve
-						try {
-							walletClient2.seedFromMnemonic(words2, {network : CONFIG.NETWORK});
-							deferred2.resolve("wallet2 recreated");
-						} catch (e) {
-							deferred2.reject(e);
-						}
-					} else {
-						deferred2.reject(err);
-					}
-				} else { // Wallet exists
-					deferred2.resolve("wallet2 exists");
-				}
-			});
+			} else {
+				deferredWallet1.resolve("WALLET_EXISTS");
+			}
+		});
 		
 		return retVal.promise;
 	};
