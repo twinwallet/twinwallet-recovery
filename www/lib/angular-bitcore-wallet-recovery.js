@@ -4,10 +4,9 @@ var Buffer = buffer.Buffer;
 var bwrModule = angular.module('bwrModule', ['bwcModule', 'cscModule'])
 
 bwrModule.constant("CONFIG", {
-	BWS_URL : 'http://twtest.undo.it:3232/bws/api', //BitWalletService URL
-//	BWS_URL : 'https://bws.bitpay.com/bws/api', //BitWalletService URL
+//	BWS_URL : 'http://twtest.undo.it:3232/bws/api', //BitWalletService URL
+	BWS_URL : 'https://bws.bitpay.com/bws/api', //BitWalletService URL
 	NETWORK : 'testnet',
-	NOTIFICATION_INTERVAL : {notificationIntervalSeconds: 0.2}
 });
 
 bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', function ($q, bwcService, cscService, CONFIG) {
@@ -47,20 +46,10 @@ bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', fun
 			deferredBroadcast = $q.defer(),
 			retVal = $q.defer(),
 			self = this;
-			
-/*		self.walletClient1.getStatus({}, function(err, status) {
-				console.debug(self.walletClient1.isComplete(), err, status);
-		});*/
-			
-		self.walletClient1.getTxProposals({}, function(err, props) {
-			console.debug(err, props);
-		});
-			
-		return;
 
 		deferredPending.promise.then(function() {
 			// Now, with no pending transaction, let's compute the feePerKb
-			self.walletClient1.getFeeLevels(CONFIG.NETWORK, function (err, levels) { console.debug("feelEvels");
+			self.walletClient1.getFeeLevels(CONFIG.NETWORK, function (err, levels) {
 				if (err) {
 					deferredFee.reject(err);
 				} else {
@@ -73,7 +62,7 @@ bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', fun
 		
 		deferredFee.promise.then(function(feePerKB) {
 			// Now we do have the fee rate. We can compute the total fees
-			self.walletClient1.getBalance({}, function(err, balance) { console.debug("getBalan");
+			self.walletClient1.getBalance({}, function(err, balance) {
 				if (err) {
 					deferredAmount.reject(err);
 				} else {
@@ -98,7 +87,7 @@ bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', fun
 				message: '',
 				feePerKb: this.feePerKb,
 				excludeUnconfirmedUtxos:  false
-			}, function(err, txp) { console.debug("sendTxp");
+			}, function(err, txp) {
 				if (err) {
 					deferredTxp.reject(err);
 				} else {
@@ -109,7 +98,7 @@ bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', fun
 
 		deferredTxp.promise.then(function(txp) {
 			// Transaction Proposal. Let's sign it.
-			self.walletClient1.signTxProposal(txp, function(err, signedTxp) { console.debug("sign1Txp");
+			self.walletClient1.signTxProposal(txp, function(err, signedTxp) {
 				if (err) {
 					deferredSigned1.reject(err);
 				} else {
@@ -120,7 +109,7 @@ bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', fun
 
 		deferredSigned1.promise.then(function(signedTxp) {
 			// The transaction proposal is signed once.
-			self.walletClient2.signTxProposal(signedTxp, function(err, signedTxp) { console.debug("sign2Txp");
+			self.walletClient2.signTxProposal(signedTxp, function(err, signedTxp) {
 				if (err) {
 					deferredSigned2.reject(err);
 				} else {
@@ -131,7 +120,7 @@ bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', fun
 
 		deferredSigned2.promise.then(function(signedTxp) {
 			// The transaction proposal is now signed twice. Broadcast!
-			self.walletClient1.broadcastTxProposal(signedTxp, function (err, btx, memo) { console.debug("lanciolargo");
+			self.walletClient1.broadcastTxProposal(signedTxp, function (err, btx, memo) {
 				if (err) {
 					deferredBroadcast.reject(err);
 				} else {
@@ -140,7 +129,7 @@ bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', fun
 			});
 		});
 
-		deferredBroadcast.promise.then(function(result) { console.debug("resolve");
+		deferredBroadcast.promise.then(function(result) {
 			retVal.resolve(result[0].amount);
 		});
 
@@ -157,7 +146,7 @@ bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', fun
 		});
 			
 		// Let's trigger the whole promise chain
-		self.walletClient1.getTxProposals({}, function(err, proposals) { console.debug("getTx");
+		self.walletClient1.getTxProposals({}, function(err, proposals) {
 			if (err) {
 				deferredPending.reject(err);
 			} else { 
@@ -186,7 +175,7 @@ bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', fun
 								deferred[i].resolve();
 							}
 						}
-					
+
 						if (txp.creatorId === self.walletClient1.credentials.copayerId) { // walletClient1 did create the txp.
 							if (txp.status === 'accepted') { // Already signed twice
 								self.walletClient1.broadcastTxProposal(txp, callback);
@@ -232,12 +221,13 @@ bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', fun
 			deferredWallet2 = $q.defer(),
 			deferredWallet3 = $q.defer(),
 			deferredXPrivKey = $q.defer(),
+			deferredOpen = $q.defer(),
 			retVal = $q.defer(),
 			self = this;
 			
 		deferredWallet1.promise.then(function(result) {
 			if (result === 'WALLET_EXISTS') { // Wallet already known to the network
-				self.walletClient2.importFromMnemonic(words2, {network : CONFIG.NETWORK}, function(err) { console.debug("importW2");
+				self.walletClient2.importFromMnemonic(words2, {network : CONFIG.NETWORK}, function(err) {
 					if (err) {
 						// If the first wallet is know, so should be also the second wallet.
 						// An import failure here should be impossibile, so let's handle it as an "assertion" failure. 
@@ -249,11 +239,6 @@ bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', fun
 			} else { // Wallet unknow. We need to recreate it
 				self.walletClient1.seedFromMnemonic(words1, {network : CONFIG.NETWORK}); // Client-side initialization
 				self.walletClient1.createWallet('Twin Wallet', 'Device 1', 2, 3, {network: CONFIG.NETWORK}, function (err, secret) { // Server-side initialization
-
-
- console.debug("creatuno");
-
-
 					if (err) {
 						deferredWallet2.reject(err);
 					} else { // Wallet created
@@ -268,11 +253,8 @@ bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', fun
 				deferredWallet3.resolve("WALLET_EXISTS")
 			} else { // Wallet doesn't exist, let's join the second client
 				var secret = result;
-				self.walletClient2.joinWallet(secret, 'Device2', {}, function (err, wallet) {
-
- console.debug("joinW2");
-
-
+				self.walletClient2.seedFromMnemonic(words2, {network : CONFIG.NETWORK}); // Client-side initialization
+				self.walletClient2.joinWallet(secret, 'Device 2', {}, function (err, wallet) {
 					if (err) { // Again. At this stage, an error is highly unpropable
 						deferredWallet3.reject(err);
 					} else {
@@ -300,12 +282,7 @@ bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', fun
 				} else { // Wallet doesn't exist. Let's join
 					var secret = result;
 					self.walletClient3.seedFromExtendedPrivateKey(xpriv);
-					self.walletClient3.joinWallet(secret, 'Device3', {}, function (err, wallet) {
-
-
- console.debug("joinW3");
-
-
+					self.walletClient3.joinWallet(secret, 'Device 3', {}, function (err, wallet) {
 						if (err) { // Again. At this stage, an error is highly unpropable
 							deferredXPrivKey.reject(err);
 						} else {
@@ -317,19 +294,50 @@ bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', fun
 		});
 
 		deferredXPrivKey.promise.then(function (result) {
-			retVal.resolve(result);
+			// At this point all three wallets have been created
+			// Let's wait for the completions of the publicKeyRing
+			self.walletClient1.openWallet(function (err, status) {
+				if (err) {
+					deferredOpen.reject(err);
+				} else {
+					deferredOpen.resolve(result);
+				}
+			})
+		});
+		
+		deferredOpen.promise.then(function (result) {
+			// TODO verificare cosa restituire all'utente dopo la creazione del wallet/indirizzo
+			self.walletClient1.getMainAddresses({}, function (err, addr) {
+				if (err) {
+					retVal.reject(err);
+				} else if (addr.length === 0) { // No address defined yet
+					// Let's create it.
+					self.walletClient1.createAddress({}, function(err, address) {
+						if (err) {
+							retVal.reject(err);
+						} else {
+							// TODO vedi sopra
+							retVal.resolve(result);
+						}
+					});
+				} else {
+					// TODO vedi sopra
+					retVal.resolve(result);
+				}
+			})
 		});
 
 		// Error handler
 		$q.all([deferredWallet1.promise,
 				deferredWallet2.promise,
 				deferredWallet3.promise,
-				deferredXPrivKey.promise
+				deferredXPrivKey.promise,
+				deferredOpen.promise
 		]).catch(function(err) {
 			retVal.reject(err);
 		});
 		
-		self.walletClient1.importFromMnemonic(words1, {network : CONFIG.NETWORK}, function(err) { console.debug("importW1");
+		self.walletClient1.importFromMnemonic(words1, {network : CONFIG.NETWORK}, function(err) {
 			if(err) {
 				if (err.code === "WALLET_DOES_NOT_EXIST" || err.message === "Copayer not found") {
 					deferredWallet1.resolve("WALLET_DOES_NOT_EXIST");
