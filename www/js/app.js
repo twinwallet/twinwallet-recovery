@@ -47,8 +47,8 @@ angular.module('starter', ['ionic', 'ngMessages', '720kb.tooltips', 'bwcModule',
 			key.then(function(keyValue) { // Resolve
 				if (dataForm.target.title) {
 					$ionicPopup.confirm({
-						title: 'Chiave recuperata',
-						template: "Trasferire il portafoglio all'indirizzo " + dataForm.target.title + " ?"
+						title: 'Portafoglio recuperato',
+						template: "Trasferire il contenuto all'indirizzo " + dataForm.target.title + " ?"
 					}).then(function(yes) { // Confirm transfer?
 						if (yes) {
 							$scope.show('<p>Moving satoshis...</p><ion-spinner></ion-spinner>'); // Shows the $ionicLoading spinner
