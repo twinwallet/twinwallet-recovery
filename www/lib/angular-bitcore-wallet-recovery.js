@@ -216,56 +216,67 @@ bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', fun
 	 * @return $q.deferred.promise |
 	 */
 	this.getKey = function (words1, words2) {
-	
-		var deferredWallet1 = $q.defer(),
-			deferredWallet2 = $q.defer(),
-			deferredWallet3 = $q.defer(),
-			deferredXPrivKey = $q.defer(),
-			deferredOpen = $q.defer(),
-			retVal = $q.defer(),
-			self = this;
-			
-		deferredWallet1.promise.then(function(result) {
+	  var self = this;
+		var deferred = $q.defer();
+
+    // first async call. Don't need to defer it.
+    self.walletClient1.importFromMnemonic(words1, {network : CONFIG.NETWORK}, function(err) {
+      if(err) {
+        if (err.code === "WALLET_DOES_NOT_EXIST" || err.message === "Copayer not found") {
+          deferred.resolve("WALLET_DOES_NOT_EXIST");
+        } else {
+          deferred.reject(err);
+        }
+      } else {
+        deferred.resolve("WALLET_EXISTS");
+      }
+    });
+    
+		return deferred.promise
+    .then(function(result) {
+      var d = $q.defer();
 			if (result === 'WALLET_EXISTS') { // Wallet already known to the network
 				self.walletClient2.importFromMnemonic(words2, {network : CONFIG.NETWORK}, function(err) {
 					if (err) {
 						// If the first wallet is know, so should be also the second wallet.
 						// An import failure here should be impossibile, so let's handle it as an "assertion" failure. 
-						deferredWallet2.reject(err)
+						d.reject(err)
 					} else { // Ok. Second wallet initialized.
-						deferredWallet2.resolve("WALLET_EXISTS")
+						d.resolve("WALLET_EXISTS")
 					}
 				});
 			} else { // Wallet unknow. We need to recreate it
 				self.walletClient1.seedFromMnemonic(words1, {network : CONFIG.NETWORK}); // Client-side initialization
 				self.walletClient1.createWallet('Twin Wallet', 'Device 1', 2, 3, {network: CONFIG.NETWORK}, function (err, secret) { // Server-side initialization
 					if (err) {
-						deferredWallet2.reject(err);
+						d.reject(err);
 					} else { // Wallet created
-						deferredWallet2.resolve(secret);
+						d.resolve(secret);
 					}
 				});
 			}
-		});
-
-		deferredWallet2.promise.then(function(result) {
-			if (result === "WALLET_EXISTS") { // Wallet 2 initialized
-				deferredWallet3.resolve("WALLET_EXISTS")
+      return d.promise;
+		})
+    .then(function(result) {
+      var d = $q.defer();
+      if (result === "WALLET_EXISTS") { // Wallet 2 initialized
+				d.resolve("WALLET_EXISTS")
 			} else { // Wallet doesn't exist, let's join the second client
 				var secret = result;
 				self.walletClient2.seedFromMnemonic(words2, {network : CONFIG.NETWORK}); // Client-side initialization
 				self.walletClient2.joinWallet(secret, 'Device 2', {}, function (err, wallet) {
 					if (err) { // Again. At this stage, an error is highly unpropable
-						deferredWallet3.reject(err);
+						d.reject(err);
 					} else {
-						deferredWallet3.resolve(secret)
+						d.resolve(secret)
 					}
 				});
 			}
-		});
-
-		deferredWallet3.promise.then(function(result) {
-			var CSClient = cscService.getCSClient();
+      return d.promise;
+		})
+    .then(function(result) {
+      var d = $q.defer();
+      var CSClient = cscService.getCSClient();
 			var entropy1 = CSClient.extractServerEntropy(self.walletClient1.credentials);
 			var entropy2 = CSClient.extractServerEntropy(self.walletClient2.credentials);
 
@@ -274,81 +285,60 @@ bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', fun
 			var seed = Buffer.concat(sort([e1, e2]));
 
 			if (seed.length != 64) {
-				deferredXPrivKey.reject("Errore nella generazione dell'entropia (ERR_NOT512BIT_ENTROPY)")
+				d.reject("Errore nella generazione dell'entropia (ERR_NOT512BIT_ENTROPY)")
 			} else {
 				var xpriv = bwcService.getBitcore().HDPrivateKey.fromSeed(seed, CONFIG.NETWORK).toString();
 				if (result === "WALLET_EXISTS") {
-					deferredXPrivKey.resolve(xpriv);
+					d.resolve(xpriv);
 				} else { // Wallet doesn't exist. Let's join
 					var secret = result;
 					self.walletClient3.seedFromExtendedPrivateKey(xpriv);
 					self.walletClient3.joinWallet(secret, 'Device 3', {}, function (err, wallet) {
 						if (err) { // Again. At this stage, an error is highly unpropable
-							deferredXPrivKey.reject(err);
+							d.reject(err);
 						} else {
-							deferredXPrivKey.resolve(xpriv)
+							d.resolve(xpriv)
 						}
 					});
 				}
 			}
-		});
-
-		deferredXPrivKey.promise.then(function (result) {
-			// At this point all three wallets have been created
+      return d.promise;
+		})
+    .then(function (result) {
+      var d = $q.defer();
+      // At this point all three wallets have been created
 			// Let's wait for the completions of the publicKeyRing
 			self.walletClient1.openWallet(function (err, status) {
 				if (err) {
-					deferredOpen.reject(err);
+					d.reject(err);
 				} else {
-					deferredOpen.resolve(result);
+					d.resolve(result);
 				}
 			})
-		});
-		
-		deferredOpen.promise.then(function (result) {
-			// TODO verificare cosa restituire all'utente dopo la creazione del wallet/indirizzo
+      return d.promise;
+		})
+    .then(function (result) {
+      var d = $q.defer();
+      // TODO verificare cosa restituire all'utente dopo la creazione del wallet/indirizzo
 			self.walletClient1.getMainAddresses({}, function (err, addr) {
 				if (err) {
-					retVal.reject(err);
-				} else if (addr.length === 0) { // No address defined yet
-					// Let's create it.
-					self.walletClient1.createAddress({}, function(err, address) {
-						if (err) {
-							retVal.reject(err);
-						} else {
-							// TODO vedi sopra
-							retVal.resolve(result);
-						}
-					});
+					d.reject(err);
+				// } else if (addr.length === 0) { // No address defined yet
+				// 	// Let's create it.
+				// 	self.walletClient1.createAddress({}, function(err, address) {
+				// 		if (err) {
+				// 			d.reject(err);
+				// 		} else {
+				// 			// TODO vedi sopra
+				// 			d.resolve(result);
+				// 		}
+				// 	});
 				} else {
 					// TODO vedi sopra
-					retVal.resolve(result);
+					d.resolve(result);
 				}
 			})
+      return d.promise;
 		});
-
-		// Error handler
-		$q.all([deferredWallet1.promise,
-				deferredWallet2.promise,
-				deferredWallet3.promise,
-				deferredXPrivKey.promise,
-				deferredOpen.promise
-		]).catch(function(err) {
-			retVal.reject(err);
-		});
-		
-		self.walletClient1.importFromMnemonic(words1, {network : CONFIG.NETWORK}, function(err) {
-			if(err) {
-				if (err.code === "WALLET_DOES_NOT_EXIST" || err.message === "Copayer not found") {
-					deferredWallet1.resolve("WALLET_DOES_NOT_EXIST");
-				} else {
-					deferredWallet1.reject(err);
-				}
-			} else {
-				deferredWallet1.resolve("WALLET_EXISTS");
-			}
-		});
-		
-		return retVal.promise;
 	};
 }]);
