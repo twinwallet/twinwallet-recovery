@@ -9,7 +9,7 @@ bwrModule.constant("CONFIG", {
   NETWORK : 'testnet',
 });
 
-bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', function ($q, bwcService, cscService, CONFIG) {
+bwrModule.service('bwrService', ['$q', 'bwcService', 'cosignkey', 'CONFIG', function ($q, bwcService, cosignkey, CONFIG) {
 
   bwcService.setBaseUrl(CONFIG.BWS_URL);
 
@@ -18,16 +18,6 @@ bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', fun
   this.walletClient3 = bwcService.getClient();
     
   this.feePerKB = 0;
-
-  function sort(buffs) {
-    if (buffs[0].length > buffs[1].length) return buffs;
-    if (buffs[0].length < buffs[1].length) return [buffs[1], buffs[0]];
-    for (var i = buffs[0].length - 1; i >= 0; i--) {
-      if (buffs[0][i] > buffs[1][i]) return buffs;
-      if (buffs[0][i] < buffs[1][i]) return [buffs[1], buffs[0]];
-    }
-    return buffs;
-  }
   
   /**
    * move()
@@ -241,7 +231,7 @@ bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', fun
         self.walletClient2.importFromMnemonic(words2, {network : CONFIG.NETWORK}, function(err) {
           if (err) {
             // If the first wallet is know, so should be also the second wallet.
-            // An import failure here should be impossibile, so let's handle it as an "assertion" failure. 
+            // An import failure here should be impossibile, so let's handle it as an "assertion" failure.
             d.reject(err)
           } else { // Ok. Second wallet initialized.
             d.resolve("WALLET_EXISTS")
@@ -280,36 +270,28 @@ bwrModule.service('bwrService', ['$q', 'bwcService', 'cscService', 'CONFIG', fun
       return d.promise;
 			
     }).then(function (result) {
-      var d = $q.defer();
-      var CSClient = cscService.getCSClient();
-      var entropy1 = CSClient.extractServerEntropy(self.walletClient1.credentials);
-      var entropy2 = CSClient.extractServerEntropy(self.walletClient2.credentials);
-  
-      var e1 = new Buffer(entropy1, 'base64');
-      var e2 = new Buffer(entropy2, 'base64');
-      var seed = Buffer.concat(sort([e1, e2]));
-  
-      if (seed.length != 64) {
-        d.reject("Errore nella generazione dell'entropia (ERR_NOT512BIT_ENTROPY)")
-      } else {
-        var xpriv = bwcService.getBitcore().HDPrivateKey.fromSeed(seed, CONFIG.NETWORK).toString();
+      return $q(function (resolve, reject) {
+        try {
+          var entropy1 = cosignkey.extractServerEntropy(self.walletClient1.credentials);
+          var entropy2 = cosignkey.extractServerEntropy(self.walletClient2.credentials);
+          var xpriv = cosignkey.get3rdKeyXPriv(entropy1, entropy2, CONFIG.NETWORK);
+        } catch (e) {
+          return reject("Errore nella generazione dell'entropia (ERR_NOT512BIT_ENTROPY)");
+        }
         if (result === "WALLET_EXISTS") {
-          d.resolve(xpriv);
+          resolve(xpriv);
         } else { // Wallet doesn't exist. Let's join
           var secret = result;
           self.walletClient3.seedFromExtendedPrivateKey(xpriv);
           self.walletClient3.joinWallet(secret, 'Device 3', {}, function (err, wallet) {
             if (err) { // Again. At this stage, an error is highly unpropable
-              d.reject(err);
+              reject(err);
             } else {
-              d.resolve(xpriv)
+              resolve(xpriv)
             }
           });
         }
-      }
-			
-      return d.promise;
-			
+      });
     }).then(function (result) {
       var d = $q.defer();
 			

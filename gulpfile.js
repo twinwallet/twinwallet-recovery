@@ -13,7 +13,7 @@ var uglify = require('gulp-uglify');
 
 var paths = {
   sass: ['./scss/**/*.scss'],
-  libs: ['./libs/angular-bitcore-wallet-client.js']
+  libs: ['./libs/angular-bitcore-wallet-client.js', './libs/cosignkey.js']
 };
 
 gulp.task('default', ['sass', 'libs']);
