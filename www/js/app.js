@@ -23,7 +23,45 @@ angular.module('starter', ['ionic', 'ngMessages', '720kb.tooltips', 'bwcModule',
   });
 })
 
-.controller('mainController', function($scope, $ionicLoading, $ionicPopup, bwrService) {
+
+.config(function($stateProvider, $urlRouterProvider) {
+    $stateProvider
+        .state('main', {
+          url: '/main',
+          templateUrl: 'templates/main.html',
+          controller: 'mainController'
+        })
+        .state('success', {
+          url: '/success',
+          templateUrl: 'templates/success.html'
+        })
+        .state('xprivkey', {
+          url: '/xprivkey/:xPrivKey',
+          templateUrl: 'templates/xprivkey.html',
+          controller: 'xprivController'
+        })
+        .state('xprivkey.keyloaded', {
+          url: "/keyloaded/:xPrivKey",
+          views: {
+            'container' :{
+              templateUrl: "templates/keyloaded.html"
+            }
+          }
+        })
+        .state('xprivkey.loading', {
+          url: "/loading/:xPrivKey",
+          views: {
+            'container' :{
+              templateUrl: "templates/loading.html"
+            }
+          }
+        });
+    $urlRouterProvider.otherwise('/main');
+})
+
+.controller('xprivController', function($scope, $state, $stateParams, $q, $ionicPopup, $ionicLoading, bwrService) {
+  $scope.xPrivKey = $stateParams.xPrivKey;
+
 	$scope.show = function(template) {
 		$ionicLoading.show({
 			template: template,
@@ -35,42 +73,82 @@ angular.module('starter', ['ionic', 'ngMessages', '720kb.tooltips', 'bwcModule',
         $ionicLoading.hide();
 	};
 
-	$scope.rebuildWallet = function(dataForm) {
+  setTimeout(function() {
+    $q.all([bwrService.getBalance(), bwrService.getTxHistory()]).then(function(result) {
+      $scope.balance = result[0];
+      $scope.transactions = result[1];
+            
+      for (var i = 0; i < $scope.transactions.length; i++) {
+        var date = new Date($scope.transactions[i].time*1000);
+          $scope.transactions[i].time = date.toLocaleDateString();
+      }
+      
+      bwrService.getMaxFees().then(function(fees) {
+        $scope.maxFees = fees;
+        $state.go('xprivkey.keyloaded', {'xPrivKey' : $stateParams.xPrivKey});
+      }, function(err) {
+				$ionicPopup.alert({
+					title: 'Errore nel recuper del wallet',
+					template: 'Risposta del server: ' + htmlspecialchars(err.toString())
+				});
+      })
+
+    }, function(err) {
+			$ionicPopup.alert({
+				title: 'Errore nel trasfermento del wallet',
+				template: 'Risposta del server: ' + htmlspecialchars(err.toString())
+			});
+    });
+  }, 0);
+
+  $scope.moveWallet = function(form) {
+		
+		if (!form.$valid) return; 
+		
+		$scope.show('<p>Moving satoshis...</p><ion-spinner></ion-spinner>'); // Shows the $ionicLoading spinner
+
+    setTimeout(function() {
+  		bwrService.move(form.target.title, form.amount.title).then(function(result) { // Resolve
+        $state.go('success');
+  		}, function(reason) { // Reject
+  			$ionicPopup.alert({
+  				title: 'Errore nel trasfermento del wallet',
+  				template: 'Risposta del server: ' + htmlspecialchars(reason.toString())
+  			});
+  		}).finally(function(){
+  			$scope.hide()
+  		});
+    }, 0);
+  };
+})
+
+.controller('mainController', function($scope, $state, $ionicLoading, $ionicPopup, bwrService) {
+	$scope.show = function(template) {
+		$ionicLoading.show({
+			template: template,
+			delay: 0
+		});
+	};
+
+	$scope.hide = function(){
+        $ionicLoading.hide();
+	};
+
+	$scope.recoverKey = function(dataForm) {
 		
 		if (!dataForm.$valid) return; 
 		
 		$scope.show('<p>Retrieving wallet info...</p><ion-spinner></ion-spinner>'); // Shows the $ionicLoading spinner
 		
 		setTimeout(function() {
+      
+      // BaseUrl
+      bwrService.setBaseUrl(dataForm.bwsUrl.title);
+      
 			var key = bwrService.getKey(dataForm.secret1.title, dataForm.secret2.title)
 			
 			key.then(function(keyValue) { // Resolve
-				if (dataForm.target.title) {
-					$ionicPopup.confirm({
-						title: 'Portafoglio recuperato',
-						template: "Trasferire il contenuto all'indirizzo " + dataForm.target.title + " ?"
-					}).then(function(yes) { // Confirm transfer?
-						if (yes) {
-							$scope.show('<p>Moving satoshis...</p><ion-spinner></ion-spinner>'); // Shows the $ionicLoading spinner
-							var promise = bwrService.move(dataForm.target.title);
-						
-							promise.then(function(result) { // Resolve
-								alert("Transazione completata correttamente.\nTrasferiti " + result + " satoshi");
-							}, function(reason) { // Reject
-								$ionicPopup.alert({
-									title: 'Errore nel trasfermento del wallet',
-									template: 'Risposta del server: ' + htmlspecialchars(reason.toString())
-								});
-							}).finally(function(){
-								$scope.hide()
-							});
-						} else {
-							alert("Operazione annullata.");
-						}
-					});
-				} else {
-					alert("Portafoglio recuperato\nChiave Privata: " + keyValue);
-				}
+        $state.go('xprivkey.loading', {'xPrivKey' : keyValue});
 			}, function (reason) { // Reject
 				$ionicPopup.alert({
 					title: 'Errore nella creazione/recupero del wallet',

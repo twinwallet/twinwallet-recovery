@@ -32,60 +32,11 @@
     <script src="js/app.js"></script>
   </head>
   <body ng-app="starter" ng-controller="mainController">
-
     <ion-pane>
       <ion-header-bar class="bar-stable">
-        <h1 class="title">Ricostruzione Portafoglio</h1>
+        <h1 class="title" style="font-size:large;">Recupero portafogli</h1>
       </ion-header-bar>
-      <ion-content>
-        <form name="dataForm" novalidate="" ng-submit="rebuildWallet(dataForm)">
-          <div class="list">
-            <label class="item item-input item-floating-label" tooltips tooltip-template="Digitare una frase di 12 parole" tooltip-side="bottom" ng-class="{ 'has-errors' : dataForm.secret1.$invalid && dataForm.$submitted}">
-              <span class="input-label">Prima frase segreta</span>
-              <input type="text" name="secret1" placeholder="Prima frase segreta" ng-model="dataForm.secret1.title" required secret>
-            </label>
-            <div  class="error-container" ng-show="dataForm.secret1.$error && dataForm.$submitted" ng-messages="dataForm.secret1.$error">
-              <div ng-messages-include="error-list.html"></div>
-            </div>
-
-            <label class="item item-input item-floating-label" tooltips tooltip-template="Digitare una frase di 12 parole" tooltip-side="bottom" ng-class="{ 'has-errors' : dataForm.secret2.$invalid && dataForm.$submitted}">
-              <span class="input-label">Seconda frase segreta</span>
-              <input type="text" name="secret2" placeholder="Seconda frase segreta" ng-model="dataForm.secret2.title" required secret>
-            </label>
-            <div  class="error-container" ng-show="dataForm.secret2.$error && dataForm.$submitted" ng-messages="dataForm.secret2.$error">
-              <div ng-messages-include="error-list.html"></div>
-            </div>
-
-            <label class="item item-input item-floating-label" tooltips tooltip-template="Immettere, senza spazi, una combinazione di lettere (maiuscole/minuscole) e numeri." tooltip-side="bottom" ng-class="{ 'has-errors' : dataForm.target.$invalid && dataForm.$submitted}">
-              <span class="input-label">Indirizzo di destinazione</span>
-              <input type="text" name="target" placeholder="Indirizzo portafoglio di desinazione" ng-model="dataForm.target.title" bc-address>
-            </label>
-            <div  class="error-container" ng-show="dataForm.target.$error && dataForm.$submitted" ng-messages="dataForm.target.$error">
-              <div ng-messages-include="error-list.html"></div>
-            </div>
-
-          </div>
-          <div class="padding">
-            <button type="submit" class="button button-block button-positive" tooltips tooltip-template="Ricostruisci" tooltip-side="bottom">Ricostruisci portafoglio</button>
-          </div>
-        </form>
-      </ion-content>
+      <ion-nav-view></ion-nav-view>
     </ion-pane>
-
-    <script id="error-list.html" type="text/ng-template">
-      <div class="form-error" ng-message="required">
-        <i class="ion-information-circled"></i>
-        Questo campo è richiesto.
-      </div>
-      <div class="form-error" ng-message="twelveWordsValidator">
-        <i class="ion-information-circled"></i>
-        Immettere una frase di dodici parole.
-      </div>
-      <div class="form-error" ng-message="addressValidator">
-        <i class="ion-information-circled"></i>
-        Immettere, senza spazi, una combinazione di lettere (maiuscole/minuscole) e numeri.
-      </div>
-    </script>
-
   </body>
 </html>

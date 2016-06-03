@@ -9,7 +9,7 @@ angular.module('cosignKeyModule', []).service("cosignkey", ['bwcService', functi
   };
 
   this.get3rdKeyXPriv = function (entropy1, entropy2, network) {
-    var seed = cosignKey.get3rdKeySeed(entropy1, entropy2);
+    var seed = cosignkey.get3rdKeySeed(entropy1, entropy2);
     return Bitcore.HDPrivateKey.fromSeed(seed, network).toString();
   }
 }]);

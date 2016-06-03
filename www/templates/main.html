@@ -1,0 +1,48 @@
+<ion-view title="Main">
+  <ion-content>
+    <form name="dataForm" novalidate="" ng-submit="recoverKey(dataForm)">
+      <div class="list">
+        <label class="item item-input item-floating-label" tooltips tooltip-template="Digitare una frase di 12 parole" tooltip-side="bottom" ng-class="{ 'has-errors' : dataForm.secret1.$invalid && dataForm.$submitted}">
+          <span class="input-label">Prima frase segreta</span>
+          <input type="text" name="secret1" placeholder="Prima frase segreta" ng-model="dataForm.secret1.title" required secret>
+        </label>
+        <div  class="error-container" ng-show="dataForm.secret1.$error && dataForm.$submitted" ng-messages="dataForm.secret1.$error">
+          <div ng-messages-include="error-list.html"></div>
+        </div>
+
+        <label class="item item-input item-floating-label" tooltips tooltip-template="Digitare una frase di 12 parole" tooltip-side="bottom" ng-class="{ 'has-errors' : dataForm.secret2.$invalid && dataForm.$submitted}">
+          <span class="input-label">Seconda frase segreta</span>
+          <input type="text" name="secret2" placeholder="Seconda frase segreta" ng-model="dataForm.secret2.title" required secret>
+        </label>
+        <div  class="error-container" ng-show="dataForm.secret2.$error && dataForm.$submitted" ng-messages="dataForm.secret2.$error">
+          <div ng-messages-include="error-list.html"></div>
+        </div>
+
+        <label class="item item-input item-floating-label" tooltips tooltip-template="Digitare l'indirizzo della rete Bitcoin da cui recuperare il portafoglio (es.:https://bws.bitpay.com/bws/api)" tooltip-side="bottom" ng-class="{ 'has-errors' : dataForm.target.$invalid && dataForm.$submitted}">
+          <span class="input-label">Indirizzo server BWS</span>
+          <input type="text" name="target" placeholder="es.:https://bws.bitpay.com/bws/api" ng-model="dataForm.bwsUrl.title" required>
+        </label>
+        <div  class="error-container" ng-show="dataForm.target.$error && dataForm.$submitted" ng-messages="dataForm.target.$error">
+          <div ng-messages-include="error-list.html"></div>
+        </div>
+      </div>
+      <div class="padding">
+        <button type="submit" class="button button-block button-positive" tooltips tooltip-template="Ricostruisci" tooltip-side="bottom">Ricostruisci portafoglio</button>
+      </div>
+    </form>
+  </ion-content>
+  <script id="error-list.html" type="text/ng-template">
+    <div class="form-error" ng-message="required">
+      <i class="ion-information-circled"></i>
+      Questo campo è richiesto.
+    </div>
+    <div class="form-error" ng-message="twelveWordsValidator">
+      <i class="ion-information-circled"></i>
+      Immettere una frase di dodici parole.
+    </div>
+    <div class="form-error" ng-message="addressValidator">
+      <i class="ion-information-circled"></i>
+      Immettere, senza spazi, una combinazione di lettere (maiuscole/minuscole) e numeri.
+    </div>
+  </script>
+</ion-view>
