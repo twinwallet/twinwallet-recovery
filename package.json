@@ -13,7 +13,7 @@
     "gulp-sass": "^2.0.4"
   },
   "scripts": {
-    "postinstall": "cp -f ./node_modules/bitcorewalletrecovery/angular-bitcore-wallet-recovery.js ./www/lib/"
+    "postinstall": "cp -f ./node_modules/angular-twinwallet-recovery/angular-twinwallet-recovery.js ./www/lib/"
   },
   "devDependencies": {
     "bower": "^1.3.3",
