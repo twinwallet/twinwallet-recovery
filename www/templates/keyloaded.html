@@ -13,9 +13,9 @@
         </ion-item>
       </ion-list>
     </p>
-    <label class="item item-input item-floating-label" tooltips tooltip-template="Importo massimo trasferibile: {{balance - maxFees}}" tooltip-side="bottom" ng-class="{ 'has-errors' : dataForm.amount.$invalid && dataForm.$submitted}">
+    <label class="item item-input item-floating-label" tooltips tooltip-template="Importo massimo trasferibile: {{(balance - maxFees) < 0 ? 0 : (balance - maxFees)}}" tooltip-side="bottom" ng-class="{ 'has-errors' : dataForm.amount.$invalid && dataForm.$submitted}">
       <span class="input-label">Importo da trasferire:</span>
-      <input type="number" name="amount" placeholder="Importo da trasferire:" ng-model="dataForm.amount.title" min="600" max="{{balance - maxFees}}" required>
+      <input type="number" name="amount" placeholder="Importo da trasferire:" ng-model="dataForm.amount.title" min="600" max="{{(balance - maxFees) < 0 ? 0 : (balance - maxFees)}}" required>
     </label>
     <div  class="error-container" ng-show="dataForm.amount.$error && dataForm.$submitted" ng-messages="dataForm.amount.$error">
       <div ng-messages-include="error-list.html"></div>
@@ -29,6 +29,6 @@
     </div>
   </div>
   <div class="padding">
-    <button type="submit" class="button button-block button-positive">Trasferisci</button>
+    <button type="submit" ng-disabled="balance == 0 || balance - maxFees < 0" class="button button-block button-positive">Trasferisci</button>
   </div>
 </form>
