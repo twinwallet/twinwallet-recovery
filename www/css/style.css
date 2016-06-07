@@ -12,6 +12,13 @@ label.item.has-errors {
   color: red;
 }
 
+/** tooltips **/
+form tooltip {
+  display: inherit;
+}
+
+
+/** misc **/
 .spinner-wrap {
   width:100%;
   height:100%;

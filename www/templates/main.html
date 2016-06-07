@@ -2,7 +2,7 @@
   <ion-content>
     <form name="dataForm" novalidate="" ng-submit="recoverKey(dataForm)">
       <div class="list">
-        <label title="Digitare una frase di 12 parole" class="item item-input item-floating-label" ng-class="{ 'has-errors' : dataForm.secret1.$invalid && dataForm.$submitted}">
+        <label tooltips tooltip-template="Digitare una frase di 12 parole" tooltip-smart="true" class="item item-input item-floating-label" ng-class="{ 'has-errors' : dataForm.secret1.$invalid && dataForm.$submitted}">
           <span class="input-label">Prima frase segreta</span>
           <input type="text" name="secret1" placeholder="Prima frase segreta" ng-model="dataForm.secret1.title" required secret>
         </label>
@@ -10,7 +10,7 @@
           <div ng-messages-include="error-list.html"></div>
         </div>
 
-        <label title="Digitare una frase di 12 parole" class="item item-input item-floating-label" ng-class="{ 'has-errors' : dataForm.secret2.$invalid && dataForm.$submitted}">
+        <label tooltips tooltip-template="Digitare una frase di 12 parole" tooltip-smart="true" class="item item-input item-floating-label" ng-class="{ 'has-errors' : dataForm.secret2.$invalid && dataForm.$submitted}">
           <span class="input-label">Seconda frase segreta</span>
           <input type="text" name="secret2" placeholder="Seconda frase segreta" ng-model="dataForm.secret2.title" required secret>
         </label>
@@ -18,7 +18,7 @@
           <div ng-messages-include="error-list.html"></div>
         </div>
 
-        <label class="item item-input item-floating-label" title="Digitare l'indirizzo della rete Bitcoin da cui recuperare il portafoglio (es.:https://bws.bitpay.com/bws/api)" ng-class="{ 'has-errors' : dataForm.target.$invalid && dataForm.$submitted}">
+        <label class="item item-input item-floating-label" tooltips tooltip-template="Digitare l'indirizzo della rete Bitcoin da cui recuperare il portafoglio (es.:https://bws.bitpay.com/bws/api)" tooltip-smart="true" ng-class="{ 'has-errors' : dataForm.target.$invalid && dataForm.$submitted}">
           <span class="input-label">Indirizzo server BWS</span>
           <input type="text" name="target" placeholder="es.:https://bws.bitpay.com/bws/api" ng-model="dataForm.bwsUrl.title" required>
         </label>
