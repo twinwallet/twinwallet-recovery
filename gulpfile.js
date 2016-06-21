@@ -13,7 +13,11 @@ var uglify = require('gulp-uglify');
 
 var paths = {
   sass: ['./scss/**/*.scss'],
-  libs: ['./libs/angular-bitcore-wallet-client.js', './libs/cosignkey.js']
+  libs: [
+    './node_modules/angular-bitcore-wallet-client/index.js',
+    './node_modules/angular-twinwallet-recovery/angular-twinwallet-recovery.js',
+    './libs/cosignkey.js'
+  ]
 };
 
 gulp.task('default', ['sass', 'libs']);
@@ -31,7 +35,7 @@ gulp.task('sass', function(done) {
     .on('end', done);
 });
 
-gulp.task('libs', function (done) {
+gulp.task('libs', function () {
   // set up the browserify instance on a task basis
   return browserify({
       entries: paths.libs,
