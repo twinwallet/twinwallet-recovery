@@ -5,6 +5,7 @@
     "ionic": "driftyco/ionic-bower#1.2.4"
   },
   "dependencies": {
-    "angular-messages": "^1.5.3"
+    "angular-messages": "^1.5.3",
+    "angular-tooltips": "~1.1.4"
   }
 }
