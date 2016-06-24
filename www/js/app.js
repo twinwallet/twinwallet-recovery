@@ -105,15 +105,15 @@ angular.module('starter', ['ionic', 'ngMessages', '720kb.tooltips', 'bwcModule',
 		
 		if (!form.$valid) return; 
 		
-		$scope.show('<p>Moving satoshis...</p><ion-spinner></ion-spinner>'); // Shows the $ionicLoading spinner
+		$scope.show('<p>Moving...</p><ion-spinner></ion-spinner>'); // Shows the $ionicLoading spinner
 
     setTimeout(function() {
-  		bwrService.move(form.target.title, form.amount.title).then(function(result) { // Resolve
+  		bwrService.move(form.target.title, $scope.balance - $scope.maxFees).then(function(result) { // Resolve
         $state.go('success');
   		}, function(reason) { // Reject
   			$ionicPopup.alert({
-  				title: 'Errore nel trasfermento del wallet',
-  				template: 'Risposta del server: ' + htmlspecialchars(reason.toString())
+  				title: 'Transfer failed',
+  				template: 'The server says: ' + htmlspecialchars(reason.toString())
   			});
   		}).finally(function(){
   			$scope.hide()
@@ -123,6 +123,13 @@ angular.module('starter', ['ionic', 'ngMessages', '720kb.tooltips', 'bwcModule',
 })
 
 .controller('mainController', function($scope, $state, $ionicLoading, $ionicPopup, bwrService) {
+  
+  $scope.formData = {
+    bwsUrl: "https://bws.bitpay.com/bws/api",
+    secret1: '',
+    secret2: '',
+  }
+  
 	$scope.show = function(template) {
 		$ionicLoading.show({
 			template: template,
@@ -134,25 +141,25 @@ angular.module('starter', ['ionic', 'ngMessages', '720kb.tooltips', 'bwcModule',
         $ionicLoading.hide();
 	};
 
-	$scope.recoverKey = function(dataForm) {
+	$scope.recoverKey = function(formData) {
 		
-		if (!dataForm.$valid) return; 
+		if (!this.dataForm.$valid) return; 
 		
 		$scope.show('<p>Retrieving wallet info...</p><ion-spinner></ion-spinner>'); // Shows the $ionicLoading spinner
 		
 		setTimeout(function() {
       
       // BaseUrl
-      bwrService.setBaseUrl(dataForm.bwsUrl.title);
+      bwrService.setBaseUrl(formData.bwsUrl);
       
-			var key = bwrService.getKey(dataForm.secret1.title, dataForm.secret2.title)
+			var key = bwrService.getKey(formData.secret1, formData.secret2)
 			
 			key.then(function(keyValue) { // Resolve
         $state.go('xprivkey.loading', {'xPrivKey' : keyValue});
 			}, function (reason) { // Reject
 				$ionicPopup.alert({
-					title: 'Errore nella creazione/recupero del wallet',
-					template: 'Risposta del server: ' + htmlspecialchars(reason.toString())
+					title: 'Error while retrieving/creating wallets',
+					template: 'The server says: ' + htmlspecialchars(reason.toString())
 				});
 			}).finally(function() {
 				$scope.hide();

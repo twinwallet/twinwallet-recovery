@@ -1,28 +1,28 @@
 <ion-view title="ExtendedPrivateKey">
   <ion-content>
-    <p class="item"><strong>Chiave estesa:</strong> {{xPrivKey}}</p>
+    <p class="item"><strong>Chiave estesa:</strong> <input name="xprivkey" ng-model="xPrivKey" readonly/></p>
     <div ui-view name="container"></div>
   </ion-content>
   <script id="error-list.html" type="text/ng-template">
     <div class="form-error" ng-message="required">
       <i class="ion-information-circled"></i>
-      Questo campo è richiesto.
+      This field is mandatory.
     </div>
     <div class="form-error" ng-message="number">
       <i class="ion-information-circled"></i>
-      Immettere un importo numerico.
+      Type in a numeric value.
     </div>
     <div class="form-error" ng-message="max">
       <i class="ion-information-circled"></i>
-      Immettere un importo inferiore a {{balance - maxFees}}.
+      Type in a number less then {{balance - maxFees}}.
     </div>
     <div class="form-error" ng-message="min">
       <i class="ion-information-circled"></i>
-      Immettere un importo superiore a 600.
+      Type in a number greater then 600.
     </div>
     <div class="form-error" ng-message="addressValidator">
       <i class="ion-information-circled"></i>
-      Immettere, senza spazi, una combinazione di lettere (maiuscole/minuscole) e numeri.
+      Type in a combination of letters (upper/lower case) and numbers, without whitespaces.
     </div>
   </script>
 </ion-view>

@@ -1,3 +1,10 @@
+input[name=xprivkey] {
+  width: 91.5%;
+  border: none;
+  background-color: transparent;
+  cursor: text !important;
+}
+
 /** Styling for the secret field **/
 label.item.has-errors {  
   border-bottom: 2px solid red;
